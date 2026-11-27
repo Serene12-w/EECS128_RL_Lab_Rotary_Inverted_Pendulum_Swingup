@@ -24,6 +24,12 @@ All modifiable parameters are at the **top of `trainingScript.m`**:
 
 The script samples a new arm damping value at the start of each training episode. Each run creates `runs/<timestamp>_<experimentName>/` with `checkpoints/Agent50.mat`, `Agent100.mat`, etc., plus `training_stats.mat`, an editable `training_curve.fig`, and `training_curve.png`. Generated run files stay local and are excluded from Git.
 
+### Evaluate Against the Lab 6a Baseline
+
+Edit the three paths at the top of `evaluateAgents.m`, then run `evaluateAgents` in MATLAB. It compares the saved baseline and trained agents on the same five initial states at arm damping 0.225, 0.25, and 0.275. A trial succeeds if the pendulum enters upright ±15° by 2 seconds and stays there through the end of the 5-second simulation. The evaluation folder contains one angle CSV per trial, `evaluation_results.csv`/`.mat`, and a success-rate `.fig`/`.png`.
+
+To make a side-by-side 2D replay from those angle traces, run `python renderEvaluationVideo.py <evaluation-folder> --damping 0.25 --trial 1` (requires NumPy and OpenCV). This replay shows the measured pendulum angle; it is separate from the Multibody Explorer animation described below.
+
 ### Visualization
 Set `showSimulationDuringTraining = true` to watch the pendulum during training.  
 ⚠️ This **slows down training significantly**—disable for faster runs.
