@@ -18,10 +18,11 @@ Train a Soft Actor-Critic (SAC) agent to swing up and balance the Quanser rotary
 All modifiable parameters are at the **top of `trainingScript.m`**:
 - Reward function weights (`q1`–`q6`)
 - Arm damping randomization (`dampingArmVariation`, default ±10% of `dampingArm`)
+- Run label (`experimentName`; update it when changing the training design)
 - Network architecture and learning rates
 - Parallel training toggle
 
-The script samples a new arm damping value at the start of each training episode and saves an agent every 50 episodes in `checkpoints/` (`Agent50.mat`, `Agent100.mat`, etc.). These generated checkpoint files stay local and are excluded from Git.
+The script samples a new arm damping value at the start of each training episode. Each run creates `runs/<timestamp>_<experimentName>/` with `checkpoints/Agent50.mat`, `Agent100.mat`, etc., plus `training_stats.mat`, an editable `training_curve.fig`, and `training_curve.png`. Generated run files stay local and are excluded from Git.
 
 ### Visualization
 Set `showSimulationDuringTraining = true` to watch the pendulum during training.  

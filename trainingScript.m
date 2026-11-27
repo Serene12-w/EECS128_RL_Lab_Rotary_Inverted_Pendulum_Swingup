@@ -14,6 +14,7 @@ useParallelTraining = false;  % Default: false
 % Set to true to see Simscape animation during training episodes
 % Set to false for faster training (recommended for long training runs)
 showSimulationDuringTraining = false;  % Default: true (disable for faster runs)
+experimentName = "dampingArm_pm10pct"; % Change this label when changing the training design
 
 % --- Reward Function Weights (tune these to change agent behavior) ---
 q1 = 1;      % Weight for theta angle error (motor arm position)
@@ -130,6 +131,11 @@ agent = rlSACAgent(obsInfo, actInfo, initOpts, agentOpts);
 
 % Configure training options
 maxSteps = ceil(episodeDuration / Ts);
+runDir = fullfile("runs", string(datetime("now", "Format", "yyyyMMdd_HHmmss")) + "_" + experimentName);
+if isfolder(runDir)
+    error("Run folder already exists: %s", runDir);
+end
+mkdir(runDir);
 trainOpts = rlTrainingOptions(...
     MaxEpisodes=maxEpisodes, ...
     MaxStepsPerEpisode=maxSteps, ...
@@ -138,7 +144,7 @@ trainOpts = rlTrainingOptions(...
     Plots="none", ...
     SaveAgentCriteria="EpisodeFrequency", ...
     SaveAgentValue=50, ...
-    SaveAgentDirectory="checkpoints");
+    SaveAgentDirectory=fullfile(runDir, "checkpoints"));
 
 % Set parallel training option
 trainOpts.UseParallel = useParallelTraining;
@@ -161,6 +167,18 @@ end
 % Start training
 rng(0, "twister");
 trainingStats = train(agent, env, trainOpts, Evaluator=evl);
+save(fullfile(runDir, "training_stats.mat"), "trainingStats");
+f = figure("Visible", "off");
+plot(trainingStats.EpisodeIndex, trainingStats.EpisodeReward);
+hold on;
+plot(trainingStats.EpisodeIndex, trainingStats.AverageReward);
+xlabel("Episode");
+ylabel("Reward");
+legend("Episode reward", "Moving average", "Location", "best");
+grid on;
+savefig(f, fullfile(runDir, "training_curve.fig"));
+exportgraphics(f, fullfile(runDir, "training_curve.png"), Resolution=300);
+close(f);
 
 %% ========================================================================
 %  POST-TRAINING SIMULATION
