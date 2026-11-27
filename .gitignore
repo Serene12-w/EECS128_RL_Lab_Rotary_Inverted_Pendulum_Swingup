@@ -14,5 +14,8 @@ slprj/
 *.asv
 *.m~
 
+# Training checkpoints are generated locally and can be large
+checkpoints/
+
 # macOS
 .DS_Store

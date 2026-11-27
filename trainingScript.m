@@ -54,6 +54,7 @@ Ts = 0.01;               % Sample time (seconds)
 % Physical system parameters
 motorResistance = 0.22;
 dampingArm = 0.25;
+dampingArmVariation = 0.10; % Sample within +/-10% each training episode
 dampingPendulum = 0.0007;
 armCoulomb = 1e-6;
 armBreakaway = armCoulomb;
@@ -70,6 +71,11 @@ previousRngState = rng(0, "twister");
 
 % Load and configure Simulink model
 mdl = "rotpen_rl";
+load_system("QuanserQube");
+set_param("QuanserQube", "Lock", "off");
+set_param("QuanserQube/Qube servo/Pendulum Physical Model/Revolute Joint", ...
+    "DampingCoefficient_conf", "runtime");
+set_param("QuanserQube", "Lock", "on");
 open_system(mdl);
 set_param(mdl, 'SimulationMode', 'accelerator');
 % set_param(mdl, 'SaveOutput', 'off');
@@ -81,7 +87,7 @@ obsInfo = rlNumericSpec([7 1]);  % Observation: [sin(theta), cos(theta), dtheta,
 actInfo = rlNumericSpec([1 1], UpperLimit=1, LowerLimit=-1);  % Action: normalized voltage [-1, 1]
 agentBlk = mdl + "/RL Agent";
 env = rlSimulinkEnv(mdl, agentBlk, obsInfo, actInfo);
-env.ResetFcn = @localResetFcn;
+env.ResetFcn = @(in)localResetFcn(in, dampingArm, dampingArmVariation);
 
 %% ========================================================================
 %  AGENT CREATION
@@ -128,7 +134,11 @@ trainOpts = rlTrainingOptions(...
     MaxEpisodes=maxEpisodes, ...
     MaxStepsPerEpisode=maxSteps, ...
     ScoreAveragingWindowLength=scoreAveragingWindow, ...
-    StopTrainingCriteria="none");
+    StopTrainingCriteria="none", ...
+    Plots="none", ...
+    SaveAgentCriteria="EpisodeFrequency", ...
+    SaveAgentValue=50, ...
+    SaveAgentDirectory="checkpoints");
 
 % Set parallel training option
 trainOpts.UseParallel = useParallelTraining;
@@ -173,13 +183,15 @@ rng(previousRngState);
 %  LOCAL FUNCTIONS
 %  ========================================================================
 
-function in = localResetFcn(in)
-% Reset function that randomizes initial conditions for each episode
+function in = localResetFcn(in, nominalDampingArm, dampingArmVariation)
+% Randomize initial conditions and arm damping for each episode
 theta0 = (2*rand-1)*pi/4;       % Random initial arm angle
 phi0 = pi + (2*rand-1)*pi/4;    % Random initial pendulum angle (around downward)
+dampingArm = nominalDampingArm * (1 + dampingArmVariation * (2*rand-1));
 
 in = setVariable(in, "theta0", theta0);
 in = setVariable(in, "phi0", phi0);
 in = setVariable(in, "dtheta0", 0);
 in = setVariable(in, "dphi0", 0);
+in = setVariable(in, "dampingArm", dampingArm);
 end
